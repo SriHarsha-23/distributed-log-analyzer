@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  ingestor:
+    build: ./ingestor
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_REGION=eu-north-1
+      - QUEUE_URL=https://sqs.eu-north-1.amazonaws.com/339713078711/log-analyzer-queue
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    networks:
+      - log-net
+
+  producer:
+    build: ./producer
+    environment:
+      - API_URL=http://ingestor:8000/logs
+    depends_on:
+      - ingestor
+    networks:
+      - log-net
+
+  analyzer:
+    build: ./analyzer
+    environment:
+      - AWS_REGION=eu-north-1
+      - QUEUE_URL=https://sqs.eu-north-1.amazonaws.com/339713078711/log-analyzer-queue
+      - TABLE_NAME=LogAnomalies
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      - ingestor
+    networks:
+      - log-net
+
+networks:
+  log-net:
+    driver: bridge
